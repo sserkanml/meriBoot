@@ -1,0 +1,63 @@
+# --- Build output ---
+build/
+bin/
+obj/
+out/
+dist/
+
+# --- Object files & static/shared libs ---
+*.o
+*.obj
+*.a
+*.lib
+*.so
+*.so.*
+*.dll
+*.dylib
+
+# --- Assembler output ---
+*.lst
+*.map
+*.sym
+
+# --- Linker / ELF / binary images ---
+*.elf
+*.bin
+*.img
+*.iso
+*.hex
+*.efi
+
+# --- Dependency files ---
+*.d
+
+# --- Precompiled headers ---
+*.gch
+*.pch
+
+# --- Debug info ---
+*.dSYM/
+*.su
+*.idb
+*.pdb
+
+# --- QEMU / emulator artifacts ---
+*.qcow2
+*.vdi
+*.vmdk
+
+# --- Editor / IDE ---
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# --- OS junk ---
+.DS_Store
+Thumbs.db
+
+# --- Toolchain / misc ---
+compile_commands.json
+*.log
+*.tmp
