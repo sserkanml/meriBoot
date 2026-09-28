@@ -1,0 +1,44 @@
+name: Epic
+description: A large topic/component of meriBoot (e.g. "A20 Line Enabling", "Multiboot2 Header Parser")
+title: "[EPIC] "
+labels: ["epic"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Use this for a major topic that will be broken down into several Task issues.
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Description
+      description: What is this epic about, and why is it needed?
+      placeholder: e.g. "Enable the A20 gate so memory addressing above 1MB works correctly."
+    validations:
+      required: true
+
+  - type: dropdown
+    id: phase
+    attributes:
+      label: Phase
+      options:
+        - "Phase 1 - BIOS/Legacy Boot"
+        - "Phase 2 - UEFI Boot"
+    validations:
+      required: true
+
+  - type: textarea
+    id: spec-reference
+    attributes:
+      label: Multiboot2 Spec Reference
+      description: Relevant spec section(s), if applicable
+      placeholder: "e.g. section 3.3 - i386 machine state"
+
+  - type: textarea
+    id: tasks
+    attributes:
+      label: Linked Tasks
+      description: List of Task issues under this epic (fill in as they're created)
+      placeholder: |
+        - [ ] #
+        - [ ] #
