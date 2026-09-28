@@ -1,0 +1,53 @@
+name: Bug Report
+description: Something doesn't boot, crashes, or behaves incorrectly
+title: "[BUG] "
+labels: ["bug"]
+body:
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened?
+      description: Describe the incorrect behavior.
+      placeholder: e.g. "System triple-faults right after entering protected mode."
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+    validations:
+      required: true
+
+  - type: dropdown
+    id: stage
+    attributes:
+      label: Which stage does this occur in?
+      options:
+        - "Stage 1 (boot sector)"
+        - "Stage 2 (A20/GDT/protected mode)"
+        - "Multiboot2 header parsing"
+        - "MBI construction"
+        - "Kernel handoff"
+        - "EFI boot path"
+        - "Other/unknown"
+    validations:
+      required: true
+
+  - type: textarea
+    id: repro
+    attributes:
+      label: How to reproduce
+      placeholder: |
+        1. make
+        2. tools/run-qemu.sh
+        3. ...
+    validations:
+      required: true
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Relevant output/logs
+      description: Serial output, QEMU output, GDB trace, etc.
+      render: shell
