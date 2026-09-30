@@ -33,6 +33,7 @@ This assembles the Stage 1 boot sector, compiles and links Stage 2, and produces
 ## Running
 
 ```bash
+chmod +x ./tools/run-qemu.sh &&
 ./tools/run-qemu.sh
 ```
 
