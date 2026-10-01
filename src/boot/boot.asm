@@ -12,6 +12,8 @@ start:
     mov sp, 0x7C00
     sti
 
+    cld     ; clear direction flag
+
     mov si, msg
     
 
