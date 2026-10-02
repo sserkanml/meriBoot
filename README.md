@@ -37,21 +37,11 @@ This installs `nasm`, `x86_64-elf-gcc`, `x86_64-elf-binutils`, `make`, and `qemu
 
 ## Building
 
-### Linux
-
 ```bash
 make
 ```
 
-### macOS
-
-The Makefile defaults to `CC=gcc`, `LD=ld`, `OBJCOPY=objcopy`, which are Apple's native (non-bare-metal) tools and will not work for this project. Override them with the cross-toolchain installed above:
-
-```bash
-make CC=x86_64-elf-gcc LD=x86_64-elf-ld OBJCOPY=x86_64-elf-objcopy
-```
-
-Either way, this assembles the Stage 1 boot sector, compiles and links Stage 2, and produces a bootable disk image under `build/`.
+The Makefile detects macOS automatically and uses the `x86_64-elf` cross-toolchain installed above (`CC=x86_64-elf-gcc`, `LD=x86_64-elf-ld`, `OBJCOPY=x86_64-elf-objcopy`); on Linux it uses the native `gcc`/`ld`/`objcopy`. This assembles the Stage 1 boot sector, compiles and links Stage 2, and produces a bootable disk image under `build/`.
 
 ## Running
 

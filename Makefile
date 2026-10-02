@@ -1,9 +1,20 @@
 # Makefile
 
-ASM     := nasm
-CC      := gcc
-LD      := ld
-OBJCOPY := objcopy
+ASM := nasm
+
+# macOS ships Apple clang/ld as `gcc`/`ld`, which can't produce freestanding
+# 32-bit ELF binaries. Default to the Homebrew x86_64-elf cross-toolchain
+# there instead (see tools/setup_toolchain_macos.sh); override on the
+# command line (e.g. `make CC=...`) if you need something else.
+ifeq ($(shell uname -s),Darwin)
+    CC      := x86_64-elf-gcc
+    LD      := x86_64-elf-ld
+    OBJCOPY := x86_64-elf-objcopy
+else
+    CC      := gcc
+    LD      := ld
+    OBJCOPY := objcopy
+endif
 
 BUILD_DIR  := build
 SRC_BOOT   := src/boot/boot.asm
