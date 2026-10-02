@@ -25,6 +25,8 @@ BOOT_BIN   := $(BUILD_DIR)/boot.bin
 STAGE2_OBJ := $(BUILD_DIR)/stage2.o
 STAGE2_ELF := $(BUILD_DIR)/stage2.elf
 STAGE2_BIN := $(BUILD_DIR)/stage2.bin
+STAGE2_ASM_SRC := src/stage2/stage2_entry.asm
+STAGE2_ASM_OBJ := $(BUILD_DIR)/stage2_entry.o
 IMG        := $(BUILD_DIR)/meriboot.img
 
 STAGE2_SECTORS := 4
@@ -46,11 +48,15 @@ $(BOOT_BIN): $(SRC_BOOT) | $(BUILD_DIR)
 $(STAGE2_OBJ): $(SRC_STAGE2) | $(BUILD_DIR)
 	$(CC) $(CFLAGS) $(SRC_STAGE2) -o $(STAGE2_OBJ)
 
-$(STAGE2_ELF): $(STAGE2_OBJ) $(LINKER)
-	$(LD) $(LDFLAGS) $(STAGE2_OBJ) -o $(STAGE2_ELF)
 
 $(STAGE2_BIN): $(STAGE2_ELF)
 	$(OBJCOPY) -O binary $(STAGE2_ELF) $(STAGE2_BIN)
+
+$(STAGE2_ASM_OBJ): $(STAGE2_ASM_SRC) | $(BUILD_DIR)
+	$(ASM) -f elf32 $(STAGE2_ASM_SRC) -o $(STAGE2_ASM_OBJ)
+
+$(STAGE2_ELF): $(STAGE2_ASM_OBJ) $(STAGE2_OBJ) $(LINKER)
+	$(LD) $(LDFLAGS) $(STAGE2_ASM_OBJ) $(STAGE2_OBJ) -o $(STAGE2_ELF)
 
 $(IMG): $(BOOT_BIN) $(STAGE2_BIN)
 	cp $(BOOT_BIN) $(IMG)

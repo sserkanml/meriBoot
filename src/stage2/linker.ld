@@ -1,4 +1,4 @@
-ENTRY(stage2_entry)
+ENTRY(start)
 
 SECTIONS
 {
