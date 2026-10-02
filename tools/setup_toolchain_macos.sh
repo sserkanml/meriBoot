@@ -95,10 +95,11 @@ check_tool() {
     fi
 }
 
-check_tool "nasm"           "nasm"
-check_tool "i386-elf-gcc"   "i386-elf-gcc"
-check_tool "i386-elf-ld"    "i386-elf-ld"
-check_tool "qemu"           "qemu-system-x86_64"
+check_tool "nasm"             "nasm"
+check_tool "i386-elf-gcc"     "i386-elf-gcc"
+check_tool "i386-elf-ld"      "i386-elf-ld"
+check_tool "i386-elf-objcopy" "i386-elf-objcopy"
+check_tool "qemu"             "qemu-system-x86_64"
 
 # Homebrew's `make` is installed as `gmake` to avoid clobbering the
 # Xcode-provided `/usr/bin/make`; either is fine for this project.
@@ -118,14 +119,52 @@ if [ "${MISSING:-0}" -eq 1 ]; then
     exit 1
 fi
 
-log "Testing i386-elf-gcc -ffreestanding support..."
-if echo 'int main(void){return 0;}' | i386-elf-gcc -ffreestanding -x c -c -o /tmp/meriboot_m32_test.o - 2>/dev/null; then
-    log "  [OK] i386-elf-gcc -ffreestanding works."
-    rm -f /tmp/meriboot_m32_test.o
-else
-    err "  [FAILED] i386-elf-gcc -ffreestanding test failed."
+log "Testing full build chain with the project's Makefile flags..."
+log "(CFLAGS: -m32 -ffreestanding -fno-pic -c | LDFLAGS: -m elf_i386)"
+
+TEST_DIR="$(mktemp -d)"
+trap 'rm -rf "$TEST_DIR"' EXIT
+
+cat > "$TEST_DIR/test.c" <<'EOF'
+void _start(void) { for (;;) {} }
+EOF
+
+cat > "$TEST_DIR/test.ld" <<'EOF'
+ENTRY(_start)
+SECTIONS {
+    . = 0x1000;
+    .text : { *(.text) }
+}
+EOF
+
+if ! i386-elf-gcc -m32 -ffreestanding -fno-pic -c "$TEST_DIR/test.c" -o "$TEST_DIR/test.o" 2>"$TEST_DIR/cc.log"; then
+    err "  [FAILED] i386-elf-gcc -m32 -ffreestanding -fno-pic -c failed:"
+    cat "$TEST_DIR/cc.log" >&2
     exit 1
 fi
+log "  [OK] i386-elf-gcc compile step works."
 
-log "Environment setup completed. You can now build with 'make' and test using qemu-system-x86_64."
-log "Note: this project's build will need CC=i386-elf-gcc and LD=i386-elf-ld on macOS."
+if ! i386-elf-ld -m elf_i386 -T "$TEST_DIR/test.ld" "$TEST_DIR/test.o" -o "$TEST_DIR/test.elf" 2>"$TEST_DIR/ld.log"; then
+    err "  [FAILED] i386-elf-ld -m elf_i386 link step failed:"
+    cat "$TEST_DIR/ld.log" >&2
+    exit 1
+fi
+log "  [OK] i386-elf-ld link step works."
+
+if ! i386-elf-objcopy -O binary "$TEST_DIR/test.elf" "$TEST_DIR/test.bin" 2>"$TEST_DIR/objcopy.log"; then
+    err "  [FAILED] i386-elf-objcopy -O binary step failed:"
+    cat "$TEST_DIR/objcopy.log" >&2
+    exit 1
+fi
+log "  [OK] i386-elf-objcopy step works."
+
+log "Environment setup completed. You can now test using qemu-system-x86_64."
+log ""
+log "IMPORTANT: the project's Makefile defaults to CC=gcc, LD=ld, OBJCOPY=objcopy,"
+log "which are Apple's native (non-bare-metal) tools and will NOT work for this"
+log "project on macOS. Build with the cross-toolchain explicitly instead:"
+log ""
+log "  make CC=i386-elf-gcc LD=i386-elf-ld OBJCOPY=i386-elf-objcopy"
+log ""
+log "Consider adding a macOS override (e.g. an 'ifeq (\$(shell uname -s),Darwin)'"
+log "block) to the Makefile so plain 'make' works out of the box on macOS."
