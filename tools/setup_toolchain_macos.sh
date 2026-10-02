@@ -5,13 +5,16 @@
 # Sets up the development environment for meriBoot on macOS.
 #
 # Apple's bundled clang/gcc no longer supports `-m32 -ffreestanding` bare-metal
-# builds, so this script installs a dedicated i386-elf cross-compiler via
-# Homebrew instead of relying on the system compiler.
+# builds, so this script installs a dedicated x86_64-elf cross-compiler via
+# Homebrew instead of relying on the system compiler. x86_64-elf-gcc is
+# multilib and happily produces 32-bit freestanding code with `-m32`, so it
+# serves as a drop-in replacement for the i386-elf toolchain this project's
+# Makefile was written against.
 #
-# Installed packages (via Homebrew):
+# Installed packages (via Homebrew, all from homebrew-core, no tap needed):
 #   - nasm              -> Assembly compiler (boot.asm, bios_calls.asm, gdt_flush.asm)
-#   - i386-elf-binutils -> Cross linker/assembler tools (ld, objcopy, ...)
-#   - i386-elf-gcc      -> Freestanding 32-bit C cross-compiler for stage2
+#   - x86_64-elf-binutils -> Cross linker/assembler tools (ld, objcopy, ...)
+#   - x86_64-elf-gcc      -> Freestanding 32-bit C cross-compiler for stage2
 #   - make              -> Build automation tool
 #   - qemu              -> Emulator to run and test compiled OS images
 #
@@ -51,17 +54,15 @@ fi
 
 log "Detected Homebrew: $(command -v brew)"
 
-# --- 4) Tap + Package Installation ------------------------------------------
-
-CROSS_TAP="nativeos/i386-elf-toolchain"
+# --- 4) Package Installation -------------------------------------------------
+#
+# x86_64-elf-gcc/binutils ship directly from homebrew-core (bottled, no tap
+# required). An earlier version of this script used the third-party
+# nativeos/i386-elf-toolchain tap, but its formulas have no bottle for
+# current macOS/Xcode releases and fail to build from source.
 
 log "Updating Homebrew..."
 brew update >/dev/null
-
-if ! brew tap | grep -qx "$CROSS_TAP"; then
-    log "Adding tap for i386-elf cross-compiler: $CROSS_TAP"
-    brew tap "$CROSS_TAP"
-fi
 
 install_formula() {
     local formula="$1"
@@ -76,8 +77,8 @@ install_formula() {
 install_formula "nasm"
 install_formula "qemu"
 install_formula "make"
-install_formula "i386-elf-binutils"
-install_formula "i386-elf-gcc"
+install_formula "x86_64-elf-binutils"
+install_formula "x86_64-elf-gcc"
 
 # --- 5) Verification ---------------------------------------------------------
 
@@ -95,11 +96,11 @@ check_tool() {
     fi
 }
 
-check_tool "nasm"             "nasm"
-check_tool "i386-elf-gcc"     "i386-elf-gcc"
-check_tool "i386-elf-ld"      "i386-elf-ld"
-check_tool "i386-elf-objcopy" "i386-elf-objcopy"
-check_tool "qemu"             "qemu-system-x86_64"
+check_tool "nasm"               "nasm"
+check_tool "x86_64-elf-gcc"     "x86_64-elf-gcc"
+check_tool "x86_64-elf-ld"      "x86_64-elf-ld"
+check_tool "x86_64-elf-objcopy" "x86_64-elf-objcopy"
+check_tool "qemu"               "qemu-system-x86_64"
 
 # Homebrew's `make` is installed as `gmake` to avoid clobbering the
 # Xcode-provided `/usr/bin/make`; either is fine for this project.
@@ -114,8 +115,9 @@ fi
 
 if [ "${MISSING:-0}" -eq 1 ]; then
     err "Some required tools are missing. Check the output above."
-    err "Homebrew keg-only formulas (i386-elf-gcc, i386-elf-binutils) may need:"
-    err "  export PATH=\"\$(brew --prefix i386-elf-gcc)/bin:\$(brew --prefix i386-elf-binutils)/bin:\$PATH\""
+    err "If x86_64-elf-gcc/binutils were just installed, open a new shell"
+    err "(or re-run with: eval \"\$(/opt/homebrew/bin/brew shellenv)\") so Homebrew's"
+    err "shims are on PATH."
     exit 1
 fi
 
@@ -137,26 +139,26 @@ SECTIONS {
 }
 EOF
 
-if ! i386-elf-gcc -m32 -ffreestanding -fno-pic -c "$TEST_DIR/test.c" -o "$TEST_DIR/test.o" 2>"$TEST_DIR/cc.log"; then
-    err "  [FAILED] i386-elf-gcc -m32 -ffreestanding -fno-pic -c failed:"
+if ! x86_64-elf-gcc -m32 -ffreestanding -fno-pic -c "$TEST_DIR/test.c" -o "$TEST_DIR/test.o" 2>"$TEST_DIR/cc.log"; then
+    err "  [FAILED] x86_64-elf-gcc -m32 -ffreestanding -fno-pic -c failed:"
     cat "$TEST_DIR/cc.log" >&2
     exit 1
 fi
-log "  [OK] i386-elf-gcc compile step works."
+log "  [OK] x86_64-elf-gcc compile step works."
 
-if ! i386-elf-ld -m elf_i386 -T "$TEST_DIR/test.ld" "$TEST_DIR/test.o" -o "$TEST_DIR/test.elf" 2>"$TEST_DIR/ld.log"; then
-    err "  [FAILED] i386-elf-ld -m elf_i386 link step failed:"
+if ! x86_64-elf-ld -m elf_i386 -T "$TEST_DIR/test.ld" "$TEST_DIR/test.o" -o "$TEST_DIR/test.elf" 2>"$TEST_DIR/ld.log"; then
+    err "  [FAILED] x86_64-elf-ld -m elf_i386 link step failed:"
     cat "$TEST_DIR/ld.log" >&2
     exit 1
 fi
-log "  [OK] i386-elf-ld link step works."
+log "  [OK] x86_64-elf-ld link step works."
 
-if ! i386-elf-objcopy -O binary "$TEST_DIR/test.elf" "$TEST_DIR/test.bin" 2>"$TEST_DIR/objcopy.log"; then
-    err "  [FAILED] i386-elf-objcopy -O binary step failed:"
+if ! x86_64-elf-objcopy -O binary "$TEST_DIR/test.elf" "$TEST_DIR/test.bin" 2>"$TEST_DIR/objcopy.log"; then
+    err "  [FAILED] x86_64-elf-objcopy -O binary step failed:"
     cat "$TEST_DIR/objcopy.log" >&2
     exit 1
 fi
-log "  [OK] i386-elf-objcopy step works."
+log "  [OK] x86_64-elf-objcopy step works."
 
 log "Environment setup completed. You can now test using qemu-system-x86_64."
 log ""
@@ -164,7 +166,7 @@ log "IMPORTANT: the project's Makefile defaults to CC=gcc, LD=ld, OBJCOPY=objcop
 log "which are Apple's native (non-bare-metal) tools and will NOT work for this"
 log "project on macOS. Build with the cross-toolchain explicitly instead:"
 log ""
-log "  make CC=i386-elf-gcc LD=i386-elf-ld OBJCOPY=i386-elf-objcopy"
+log "  make CC=x86_64-elf-gcc LD=x86_64-elf-ld OBJCOPY=x86_64-elf-objcopy"
 log ""
 log "Consider adding a macOS override (e.g. an 'ifeq (\$(shell uname -s),Darwin)'"
 log "block) to the Makefile so plain 'make' works out of the box on macOS."
