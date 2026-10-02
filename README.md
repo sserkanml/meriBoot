@@ -13,22 +13,45 @@ Early development. See the project board and issues for current progress. Develo
 
 ## Prerequisites
 
+### Linux
+
 Run the setup script for your distribution (auto-detects Debian/Ubuntu vs. RHEL/Fedora/CentOS families):
 
 ```bash
-chmod +x tools/setup-toolchain.sh
-./tools/setup-toolchain.sh
+chmod +x tools/setup_toolchain.sh
+./tools/setup_toolchain.sh
 ```
 
 This installs `nasm`, a 32-bit capable `gcc`, `binutils`, `make`, and `qemu-system-x86`.
 
+### macOS
+
+Apple's bundled clang/gcc no longer supports `-m32 -ffreestanding` bare-metal builds, so macOS uses a dedicated `x86_64-elf` cross-compiler instead. Run:
+
+```bash
+chmod +x tools/setup_toolchain_macos.sh
+./tools/setup_toolchain_macos.sh
+```
+
+This installs `nasm`, `x86_64-elf-gcc`, `x86_64-elf-binutils`, `make`, and `qemu` via Homebrew.
+
 ## Building
+
+### Linux
 
 ```bash
 make
 ```
 
-This assembles the Stage 1 boot sector, compiles and links Stage 2, and produces a bootable disk image under `build/`.
+### macOS
+
+The Makefile defaults to `CC=gcc`, `LD=ld`, `OBJCOPY=objcopy`, which are Apple's native (non-bare-metal) tools and will not work for this project. Override them with the cross-toolchain installed above:
+
+```bash
+make CC=x86_64-elf-gcc LD=x86_64-elf-ld OBJCOPY=x86_64-elf-objcopy
+```
+
+Either way, this assembles the Stage 1 boot sector, compiles and links Stage 2, and produces a bootable disk image under `build/`.
 
 ## Running
 
