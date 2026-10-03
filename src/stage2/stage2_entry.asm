@@ -1,6 +1,8 @@
 bits 16
 
 ;   https://wiki.osdev.org/A20_Line
+
+extern stage2_entry
 start:
     ; BIOS method to enable A20 line
     mov ax, 0x2401
@@ -48,7 +50,15 @@ start:
     jmp $
 
 .a20_done:
-    jmp $
+    cli
+
+    lgdt [gdt_descriptor]
+    mov eax, cr0
+    or eax, 1
+    mov cr0, eax
+
+    jmp dword CODE_SEG:protected_mode_start
+
 
 .kbc_wait_input:
     in al, 0x64
@@ -111,3 +121,43 @@ start:
     popf
 
     ret
+
+
+; --- GDT ---
+gdt_start:
+
+gdt_null:
+    dq 0x0000000000000000
+
+gdt_code:
+    dw 0xFFFF, 0x0000
+    db 0x00, 0x9A, 0xCF, 0x00
+
+gdt_data:
+    dw 0xFFFF, 0x0000
+    db 0x00, 0x92, 0xCF, 0x00
+
+gdt_end:
+
+gdt_descriptor:
+    dw gdt_end - gdt_start - 1
+    dd gdt_start
+
+CODE_SEG equ gdt_code - gdt_start
+DATA_SEG equ gdt_data - gdt_start
+
+
+bits 32
+
+protected_mode_start:
+    mov ax, DATA_SEG
+    mov ds, ax
+    mov es, ax
+    mov fs, ax
+    mov gs, ax
+    mov ss, ax
+    mov esp, 0x90000
+
+    call stage2_entry
+
+    jmp $
